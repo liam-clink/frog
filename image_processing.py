@@ -3,8 +3,8 @@ from PIL import Image, ImageOps
 import cv2 as cv #opencv
 import matplotlib.pyplot as plt
 
-folder = './Raw PHAROS/'
-filenames = ['raw_pharos.tif']
+folder = './First Stage/'
+filenames = ['2um_Merge_9.tif']
 
 '''
 img_list = [Image.open(folder+fn) for fn in filenames]
@@ -44,7 +44,8 @@ shifted_data = raw_data - np.min(raw_data)
 plt.imshow(raw_data)
 plt.show()
 # First index is vertical axis going downwards, second index is horizontal axis
-cropped_data = shifted_data[400:1200,900:1100]
+## MAKE SURE THAT PEAK IS CENTERED VERTICALLY
+cropped_data = shifted_data[110:1300,800:1200]
 left_wavelength = -0.724*(900-1041) + 517 # nm per pixel
 #plt.contour(cropped_data,levels=100)
 #plt.show()
@@ -69,11 +70,11 @@ padded_data = np.pad(cropped_data, ((0,0),(pad_left,pad_right)))
 new_left_wavelength = left_wavelength -0.724*(-pad_left)
 right_wavelength = new_left_wavelength -0.724*padded_data.shape[1]
 wavelengths = np.linspace(new_left_wavelength, right_wavelength, padded_data.shape[1],endpoint=True)
-np.savetxt('image_wavelengths.tsv',wavelengths*1.e-9,delimiter='\t')
+np.savetxt(folder+'image_wavelengths.tsv',wavelengths*1.e-9,delimiter='\t')
 
 plt.contour(padded_data, levels=100)
 plt.show()
 
 
 print('output datatype: ', padded_data.dtype)
-np.savetxt('processed_data.tsv', padded_data, delimiter='\t')
+np.savetxt(folder+'processed_data.tsv', padded_data, delimiter='\t')

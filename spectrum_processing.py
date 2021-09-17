@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import scipy.optimize
 import scipy.interpolate
 
-folder = './Raw PHAROS/'
-filename = 'Raw PHAROS Spectrum.txt'
+folder = './First Stage/'
+filename = 'SpectraAfterFirstStage_2021_08_03.txt'
 
 spectrum = np.loadtxt(folder+filename,skiprows=14)
 plt.plot(spectrum[:,0],spectrum[:,1])
@@ -55,4 +55,4 @@ plt.plot(angular_frequencies,interpolated_spectral_intensity)
 plt.show()
 
 processed_spectrum = np.array([*zip(angular_frequencies,interpolated_spectral_intensity)])
-np.savetxt('processed_spectrum.tsv', processed_spectrum, delimiter='\t')
+np.savetxt(folder+'processed_spectrum.tsv', processed_spectrum, delimiter='\t')

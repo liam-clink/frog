@@ -1,19 +1,21 @@
 import sys
 sys.path.append('../pypret')
-from ..pypret import pypret
+import pypret
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate
 
+folder = 'First Stage/'
+
 # Measured data
 # axis 0 of data is delay, axis 1 is signal angular frequency
-data = np.loadtxt('processed_data.tsv', delimiter='\t')
+data = np.loadtxt(folder+'processed_data.tsv', delimiter='\t')
 # Data has shape (delay pixels, spectrum pixels)
 data = data[:,::-1]
 
 spectrum_provided = True
 if spectrum_provided:
-    spectral_intensity = np.loadtxt('processed_spectrum.tsv')
+    spectral_intensity = np.loadtxt(folder+'processed_spectrum.tsv')
 
 # Parameters
 
@@ -29,7 +31,7 @@ else:
     wavelengths = np.linspace(-25.e-9, 25.e-9, 256) + central_wavelength
     angular_frequencies = 2.*np.pi*2.99e8/wavelengths[::-1]
 
-signal_wavelengths = np.loadtxt('image_wavelengths.tsv')
+signal_wavelengths = np.loadtxt(folder+'image_wavelengths.tsv')
 signal_angular_frequencies = 2.*np.pi*2.99e8/signal_wavelengths
 
 measured_data = pypret.MeshData(data, delays, signal_angular_frequencies)
@@ -86,7 +88,7 @@ pypret.MeshDataPlot(pnps.trace)
 ## Finally doing the actual retrieval
 
 # and do the retrieval
-ret = pypret.Retriever(pnps, "copra", verbose=True, maxiter=300)
+ret = pypret.Retriever(pnps, "copra", verbose=True, maxiter=600)
 
 # Retrieve from the measured data
 ret.retrieve(measured_data, pulse.spectrum)
@@ -135,4 +137,6 @@ axes[1,1].set_ylabel('intensity (arb.)')
 axes11phase.set_ylabel('phase (rad)')
 
 fig.tight_layout()
+plt.savefig(folder+'frog_result.png', dpi=600)
+
 plt.show()
