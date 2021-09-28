@@ -88,7 +88,7 @@ pypret.MeshDataPlot(pnps.trace)
 ## Finally doing the actual retrieval
 
 # and do the retrieval
-ret = pypret.Retriever(pnps, "copra", verbose=True, maxiter=600)
+ret = pypret.Retriever(pnps, "copra", verbose=True, maxiter=300)
 
 # Retrieve from the measured data
 ret.retrieve(measured_data, pulse.spectrum)
@@ -112,9 +112,24 @@ axes[0,1].pcolormesh(signal_wavelengths, delays, result.trace_retrieved, shading
 axes[0,1].set_xlabel('wavelength (nm)')
 axes[0,1].set_ylabel('delays (fs)')
 
+def fwhm(intensity):
+    max_index = np.argmax(intensity)
+    for i in range(max_index,0,-1):
+        if intensity[i]<intensity[max_index]/2.:
+            low_index = i
+            break
+    for i in range(max_index,len(intensity)):
+        if intensity[i]<intensity[max_index]/2.:
+            high_index = i
+            break
+    return low_index, high_index
+
 field = result.pulse_retrieved
 field_intensity = np.abs(field)**2
 field_intensity /= np.max(field_intensity)
+low, high = fwhm(field_intensity)
+fwhm_time = pulse.t[high]-pulse.t[low]
+axes[1,0].plot([pulse.t[low]*1.e15,pulse.t[high]*1.e15], [0.5, 0.5], 'g-')
 axes[1,0].plot(pulse.t*1.e15, field_intensity,'r-')
 axes10phase = axes[1,0].twinx()
 masked_field_phases = np.ma.masked_where(field_intensity<5.e-2, np.unwrap(np.angle(field)))
@@ -123,7 +138,9 @@ axes10phase.plot(pulse.t*1.e15, masked_field_phases,'b-')
 axes[1,0].set_xlabel('time (fs)')
 axes[1,0].set_ylabel('intensity (arb.)')
 axes10phase.set_ylabel('phase (rad)')
+axes[1,0].set_title('Duration: 0:.4g'.format(fwhm_time*1.e15))
 
+# TODO: This doesn't convert from w to wavelength...
 spectrum = pulse.ft.forward(field)
 spectral_intensity = np.abs(spectrum)**2
 spectral_intensity /= np.max(spectral_intensity)
