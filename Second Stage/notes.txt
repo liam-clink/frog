@@ -1,0 +1,8 @@
+Pixels cropped off left: 356
+
+Calibration same as before
+
+Delay per vertical pixel: 0.10fs/pix
+Horizontal Pixel 1041 is 517nm
+Horizontal Pixel 1193 is 407nm
+Wavelength per horizontal pixel: -0.724nm/pix
