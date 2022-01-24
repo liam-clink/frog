@@ -55,4 +55,6 @@ print(interpolated_data.shape)
 plt.show()
 
 print('output datatype: ', interpolated_data.dtype)
-np.savetxt(folder+'processed_data.tsv', shifted_data, delimiter='\t')
+np.savetxt(folder+'processed_data.tsv', interpolated_data, delimiter='\t')
+np.savetxt(folder+'processed_data_delays.tsv', delays, delimiter='\t')
+np.savetxt(folder+'processed_data_wavelengths.tsv', new_wavelengths, delimiter='\t')

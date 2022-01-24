@@ -7,6 +7,10 @@ import scipy.interpolate
 
 folder = 'Second Stage/'
 
+# Parameters
+guess_fwhm = 25.e-15 # FWHM in s
+spectrum_provided = True
+
 # Measured data
 # axis 0 of data is delay, axis 1 is signal angular frequency
 data = np.loadtxt(folder+'processed_data.tsv', delimiter='\t')
@@ -15,28 +19,18 @@ data = data[:,::-1]
 time_pixels = data.shape[0]
 spectrum_pixels = data.shape[1]
 
-spectrum_provided = True
+delays = np.loadtxt(folder+'processed_data_delays.tsv')
+signal_wavelengths = np.loadtxt(folder+'processed_data_wavelengths.tsv')
+signal_angular_frequencies = 2.*np.pi*2.99e8/signal_wavelengths
+print(signal_angular_frequencies[0], signal_angular_frequencies[-1])
+
 if spectrum_provided:
     spectral_intensity = np.loadtxt(folder+'processed_spectrum.tsv')
-
-
-# Parameters
-
-guess_fwhm = 25.e-15 # FWHM in s
-timestep = 0.1e-15 # seconds of delay per vertical pixel
-time_range = timestep*time_pixels
-delays = np.linspace(-time_range/2., time_range/2., time_pixels,endpoint=True)  # delays in s
-
-if spectrum_provided:
     central_angular_frequency = spectral_intensity[np.argmax(spectral_intensity[:,1]),0]
 else:
     central_wavelength = 1030.e-9 # wavelength in m
     wavelengths = np.linspace(-25.e-9, 25.e-9, spectrum_pixels) + central_wavelength
     angular_frequencies = 2.*np.pi*2.99e8/wavelengths[::-1]
-
-signal_wavelengths = np.loadtxt(folder+'image_wavelengths.tsv')
-signal_angular_frequencies = 2.*np.pi*2.99e8/signal_wavelengths
-print(signal_angular_frequencies[0], signal_angular_frequencies[-1])
 
 measured_data = pypret.MeshData(data, delays, signal_angular_frequencies)
 measured_data.interpolate()
