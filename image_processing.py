@@ -29,25 +29,35 @@ plt.imshow(raw_data)
 plt.show()
 
 
-# Interpolating the spectra to power of 2 for better FFT results
-def is_pow_2(n):
-    return (n & (n-1) == 0) and (n != 0)
+# FROG image should be square with power of 2 side length.
+# Here the image is interpolated in case this isn't already the case.
+# Also, the dt and dw need to match, so dw = 2*pi/(duration) and dt = 2*pi/(ang. freq. bandwidth)
+old_size = max(shifted_data.shape[0], shifted_data.shape[1])
+exponent = (int(np.ceil(np.log2(shifted_data.shape[1]))))
+new_width = 2**exponent
 
-# FROG image should be square with power of 2 side length. Here the image is interpolated in case this isn't already the case
-if not is_pow_2(shifted_data.shape[0]) or not is_pow_2(shifted_data.shape[1]):
-    old_size = max(shifted_data.shape[0], shifted_data.shape[1])
-    exponent = (int(np.ceil(np.log2(shifted_data.shape[1]))))
-    new_width = 2**exponent
+interpolant = scipy.interpolate.interp2d(wavelengths, delays, shifted_data)
+new_wavelengths = np.linspace(left_wavelength, right_wavelength, new_width, endpoint=True)
+new_delays = np.linspace(delays[0], delays[-1], new_width, endpoint=True)
+interpolated_data = interpolant(new_wavelengths, new_delays)
 
-    interpolant = scipy.interpolate.interp2d(wavelengths, delays, shifted_data)
-    new_wavelengths = np.linspace(left_wavelength, right_wavelength, new_width, endpoint=True)
-    new_delays = np.linspace(delays[0], delays[-1], new_width, endpoint=True)
-    interpolated_data = interpolant(new_wavelengths, new_delays)
-    print('new dt: ', new_delays[1]-new_delays[0], 'new dw: ', 2.*np.pi/(new_delays[1]-new_delays[0]))
+duration = new_delays[-1]-new_delays[0]
+dt = duration/new_width
+bandwidth = 2*np.pi*2.99e8*(1./wavelengths[0]-1./wavelengths[-1])
+dw = bandwidth/new_width
+
+print('actual duration: ', duration)
+print('actual dt: ', dt)
+print('dt from bandwidth: ', 2.*np.pi/bandwidth)
+print('duration from dw: ', 2.*np.pi/dw)
+
+print('actual bandwidth: ', bandwidth*1e-12)
+print('actual dw: ', dw*1e-12)
+print('dw from duration: ', 2.*np.pi/duration*1e-12)
+print('bandwidth from dt: ', 2.*np.pi/dt*1e-12)
 
 
-
-np.savetxt(folder+'image_wavelengths.tsv', new_wavelengths,delimiter='\t')
+np.savetxt(folder+'image_wavelengths.tsv', new_wavelengths, delimiter='\t')
 
 plt.contour(new_wavelengths*1e9, new_delays*1e15, interpolated_data, levels=100)
 plt.xlabel('wavelength (nm)')
