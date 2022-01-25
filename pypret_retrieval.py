@@ -1,6 +1,4 @@
-import sys
-sys.path.append('pypret')
-import pypret
+from pypret import pypret
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate
