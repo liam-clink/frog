@@ -1,4 +1,3 @@
-import wave
 import numpy as np
 import cv2 as cv #opencv
 import matplotlib.pyplot as plt
