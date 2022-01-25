@@ -1,6 +1,6 @@
 from pypret import pypret
 import numpy as np
-import matplotlib.pyplot as plt
+
 import scipy.interpolate
 
 folder = 'Second Stage/'
@@ -19,6 +19,10 @@ spectrum_pixels = data.shape[1]
 
 delays = np.loadtxt(folder+'processed_data_delays.tsv')
 signal_wavelengths = np.loadtxt(folder+'processed_data_wavelengths.tsv')
+
+if time_pixels != len(delays) or spectrum_pixels != len(signal_wavelengths):
+    raise ValueError('Dimensions of input image must match axis dimensions')
+
 signal_angular_frequencies = 2.*np.pi*2.99e8/signal_wavelengths
 print(signal_angular_frequencies[0], signal_angular_frequencies[-1])
 
@@ -52,8 +56,12 @@ angular_frequencies = signal_angular_frequencies - 2.*central_angular_frequency
 # Create Fourier Transform grid
 # This FT grid is for the *original* pulse, not the nonlinear process result
 # The FT grid is meant to be centered at zero in w space?
+#TODO: The w0 should not need to be set. Something is wrong... the frequencies I get are off center
 ft = pypret.FourierTransform(len(angular_frequencies), dw=angular_frequencies[1]-angular_frequencies[0], w0=angular_frequencies[0])
+print(len(ft.t), ft.t[0], ft.t[-1], len(ft.w), ft.w[0], ft.w[-1])
+input()
 # instantiate a pulse object, angular frequency in rad/s
+#TODO: Consider leaving input in wavelength
 pulse = pypret.Pulse(ft, central_angular_frequency, unit='om')
 
 # Spectrum specified from spectrometer data
@@ -91,65 +99,8 @@ ret.retrieve(measured_data, pulse.spectrum)
 
 # and print the retrieval results
 result = ret.result(pulse.spectrum)
-
-## Plot the measured and retrieved traces
-signal_wavelengths = 2.*np.pi*2.99e8/signal_angular_frequencies*1.e9 # wavelengths in nm
-pulse_wavelengths = 2.*np.pi*2.99e8/(pulse.w+pulse.w0)*1.e9
-delays *= 1.e15 # convert delays to fs
-
-fig = plt.figure()
-axes = fig.subplots(2,2)
-
-axes[0,0].pcolormesh(signal_wavelengths, delays, measured_data.data, shading='auto')
-axes[0,0].set_xlabel('wavelength (nm)')
-axes[0,0].set_ylabel('delays (fs)')
-
-axes[0,1].pcolormesh(signal_wavelengths, delays, result.trace_retrieved, shading='auto')
-axes[0,1].set_xlabel('wavelength (nm)')
-axes[0,1].set_ylabel('delays (fs)')
-
-def fwhm(intensity):
-    max_index = np.argmax(intensity)
-    for i in range(max_index,0,-1):
-        if intensity[i]<intensity[max_index]/2.:
-            low_index = i
-            break
-    for i in range(max_index,len(intensity)):
-        if intensity[i]<intensity[max_index]/2.:
-            high_index = i
-            break
-    return low_index, high_index
-
-field = result.pulse_retrieved
-field_intensity = np.abs(field)**2
-field_intensity /= np.max(field_intensity)
-low, high = fwhm(field_intensity)
-fwhm_time = pulse.t[high]-pulse.t[low]
-axes[1,0].plot([pulse.t[low]*1.e15,pulse.t[high]*1.e15], [0.5, 0.5], 'g-')
-axes[1,0].plot(pulse.t*1.e15, field_intensity,'r-')
-axes10phase = axes[1,0].twinx()
-masked_field_phases = np.ma.masked_where(field_intensity<5.e-2, np.unwrap(np.angle(field)))
-masked_field_phases -= np.mean(masked_field_phases)
-axes10phase.plot(pulse.t*1.e15, masked_field_phases,'b-')
-axes[1,0].set_xlabel('time (fs)')
-axes[1,0].set_ylabel('intensity (arb.)')
-axes10phase.set_ylabel('phase (rad)')
-axes[1,0].set_title('Duration: {0:.4g}'.format(fwhm_time*1.e15))
-
-# TODO: This doesn't convert from w to wavelength...
-spectrum = pulse.ft.forward(field)
-spectral_intensity = np.abs(spectrum)**2
-spectral_intensity /= np.max(spectral_intensity)
-axes[1,1].plot(pulse_wavelengths, spectral_intensity,'r-')
-axes11phase = axes[1,1].twinx()
-masked_spectral_phases = np.ma.masked_where(spectral_intensity<5.e-2, np.unwrap(np.angle(result.pulse_retrieved)))
-masked_spectral_phases -= np.mean(masked_spectral_phases)
-axes11phase.plot(pulse_wavelengths, masked_spectral_phases,'b-')
-axes[1,1].set_xlabel('wavelength (nm)')
-axes[1,1].set_ylabel('intensity (arb.)')
-axes11phase.set_ylabel('phase (rad)')
-
-fig.tight_layout()
-plt.savefig(folder+'frog_result.png', dpi=600)
-
-plt.show()
+np.savetxt(folder+'retrieved_trace.tsv', result.trace_retrieved, delimiter='\t')
+np.savetxt(folder+'retrieved_pulse.tsv', result.pulse_retrieved, delimiter='\t')
+np.savetxt(folder+'retrieved_wavelengths.tsv', pulse.wl, delimiter='\t')
+np.savetxt(folder+'retrieved_spectrum.tsv', pulse.ft.forward(result.pulse_retrieved), delimiter='\t')
+np.savetxt(folder+'pulse_time.tsv', pulse.t, delimiter='\t')

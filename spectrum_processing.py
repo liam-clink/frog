@@ -68,7 +68,7 @@ plt.plot(angular_frequencies,interpolated_spectral_intensity)
 plt.title('Final Data')
 plt.xlabel('Angular Frequencies (rad/s)')
 plt.savefig(folder+'spectrum.svg')
-plt.clf()
+plt.show()
 
 processed_spectrum = np.array([*zip(angular_frequencies,interpolated_spectral_intensity)])
 np.savetxt(folder+'processed_spectrum.tsv', processed_spectrum, delimiter='\t')
