@@ -134,7 +134,7 @@ axes10phase.plot(pulse.t*1.e15, masked_field_phases,'b-')
 axes[1,0].set_xlabel('time (fs)')
 axes[1,0].set_ylabel('intensity (arb.)')
 axes10phase.set_ylabel('phase (rad)')
-axes[1,0].set_title('Duration: 0:.4g'.format(fwhm_time*1.e15))
+axes[1,0].set_title('Duration: {0:.4g}'.format(fwhm_time*1.e15))
 
 # TODO: This doesn't convert from w to wavelength...
 spectrum = pulse.ft.forward(field)
