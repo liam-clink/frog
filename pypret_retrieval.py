@@ -18,13 +18,12 @@ time_pixels = data.shape[0]
 spectrum_pixels = data.shape[1]
 
 delays = np.loadtxt(folder+'processed_data_delays.tsv')
-signal_wavelengths = np.loadtxt(folder+'processed_data_wavelengths.tsv')
+image_angular_frequencies = np.loadtxt(folder+'processed_data_ang_freqs.tsv')
 
-if time_pixels != len(delays) or spectrum_pixels != len(signal_wavelengths):
+if time_pixels != len(delays) or spectrum_pixels != len(image_angular_frequencies):
     raise ValueError('Dimensions of input image must match axis dimensions')
 
-signal_angular_frequencies = 2.*np.pi*2.99e8/signal_wavelengths
-print(signal_angular_frequencies[0], signal_angular_frequencies[-1])
+print(image_angular_frequencies[0], image_angular_frequencies[-1])
 
 if spectrum_provided:
     spectral_intensity = np.loadtxt(folder+'processed_spectrum.tsv')
@@ -34,23 +33,23 @@ else:
     wavelengths = np.linspace(-25.e-9, 25.e-9, spectrum_pixels) + central_wavelength
     angular_frequencies = 2.*np.pi*2.99e8/wavelengths[::-1]
 
-measured_data = pypret.MeshData(data, delays, signal_angular_frequencies)
+measured_data = pypret.MeshData(data, delays, image_angular_frequencies)
 measured_data.interpolate()
-signal_angular_frequencies = measured_data.axes[1]
+image_angular_frequencies = measured_data.axes[1]
 
 ####################################################################################################
 # Angular frequencies need to be interpolated to match the "measured_data.axes[1] = pnps.process_w"
 # condition, and of course have the same length in the first place
-# In other words: "signal_angular_frequencies = 2*pulse.w0 + pulse.ft.w"
+# In other words: "image_angular_frequencies = 2*pulse.w0 + pulse.ft.w"
 # This means that the measured spectral range is the same for both the original pulse and the nonlinear one
-# pulse.w0 is calculated from wl0 argument of pypret.Pulse()
+# pulse.w0 is calculated from wl0 argument of pypret.Pulse(), *not* pulse.ft.w0
 # n = np.arange(pulse.ft.N)
 # pulse.ft.w = pulse.ft.w0 + n * pulse.ft.dw
 
 # The range of signal angular frequencies is fixed, as is the center wavelength for the pulse,
 # so this means that the pulse.ft.w frequencies need to be resampled appropriately to satisfy this condition
 
-angular_frequencies = signal_angular_frequencies - 2.*central_angular_frequency
+angular_frequencies = image_angular_frequencies - 2.*central_angular_frequency
 
 ##################################################################
 # Create Fourier Transform grid
