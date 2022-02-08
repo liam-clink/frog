@@ -29,7 +29,7 @@ plt.imshow(raw_data)
 plt.show()
 
 
-# FROG image should be square with power of 2 side length.
+# FROG image should be square with power of 2 side length if using General Projection.
 # Here the image is interpolated in case this isn't already the case.
 # Also, the dt and dw need to match, so dw = 2*pi/(duration) and dt = 2*pi/(ang. freq. bandwidth)
 old_size = max(shifted_data.shape[0], shifted_data.shape[1])
@@ -37,7 +37,8 @@ exponent = (int(np.ceil(np.log2(shifted_data.shape[1]))))
 new_width = 2**exponent
 
 interpolant = scipy.interpolate.interp2d(wavelengths, delays, shifted_data)
-new_wavelengths = np.linspace(left_wavelength, right_wavelength, new_width, endpoint=True)
+frequencies = np.linspace(2.99e8/right_wavelength, 2.99e8/left_wavelength, new_width, endpoint=True)
+new_wavelengths = 2.99e8/frequencies
 new_delays = np.linspace(delays[0], delays[-1], new_width, endpoint=True)
 interpolated_data = interpolant(new_wavelengths, new_delays)
 
@@ -69,4 +70,5 @@ plt.show()
 print('output datatype: ', interpolated_data.dtype)
 np.savetxt(folder+'processed_data.tsv', interpolated_data, delimiter='\t')
 np.savetxt(folder+'processed_data_delays.tsv', new_delays, delimiter='\t')
+np.savetxt(folder+'processed_data_freqs.tsv', frequencies, delimiter='\t')
 np.savetxt(folder+'processed_data_wavelengths.tsv', new_wavelengths, delimiter='\t')

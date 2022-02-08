@@ -6,8 +6,13 @@ import scipy.interpolate
 folder = './Second Stage/'
 filename = 'AfterChirpmirr_2ndStage.txt'
 
-max_wavelength = 1150. # nm
-min_wavelength = 900. # nm
+
+frequencies = np.loadtxt(folder+'processed_data_freqs.tsv')
+# for SHG, the spectrum of the trace is double the frequency of the original pulse
+# Shift the spectrum so the center is at half the center, but the width is the same
+frequencies -= 0.25*(frequencies[0] + frequencies[-1])
+max_wavelength = 2.99e8/frequencies[0]*1.e9 # nm
+min_wavelength = 2.99e8/frequencies[-1]*1.e9 # nm
 
 spectrum = np.loadtxt(folder+filename,skiprows=14)
 plt.plot(spectrum[:,0],spectrum[:,1])
@@ -38,6 +43,7 @@ plt.title('Background Subtracted Spectrum')
 plt.xlabel('Wavelength (nm)')
 plt.show()
 
+'''
 # Crop Spectrum
 index_filter = np.logical_and(spectrum[:,0] > min_wavelength, spectrum[:,0] < max_wavelength)
 spectrum = spectrum[index_filter,:]
@@ -45,30 +51,29 @@ plt.plot(spectrum[:,0],spectrum[:,1])
 plt.title('Cropped Spectrum')
 plt.xlabel('Wavelength (nm)')
 plt.show()
+'''
 
-# Transform to angular frequency
-angular_frequencies = 2.*np.pi*2.99e8/(spectrum[::-1,0]*1.e-9)
+# Transform to frequency
+spectrometer_frequencies = 2.99e8/(spectrum[::-1,0]*1.e-9)
 spectral_intensity = spectrum[::-1,1]
-plt.plot(angular_frequencies, spectral_intensity)
-plt.title('Angular frequencies with Original Data')
-plt.xlabel('Angular Frequencies (rad/s)')
+'''
+plt.plot(frequencies, spectral_intensity)
+plt.title('Frequencies with Original Data')
+plt.xlabel('Frequencies (Hz)')
 plt.show()
-
+'''
 
 # Interpolate to evenly spaced power of 2 samples
-sample_count = len(angular_frequencies)
+sample_count = len(spectrometer_frequencies)
 # Round up to the nearest power of 2
-interpolate_count = 2**(int(np.ceil(np.log2(sample_count))))
+interpolator = scipy.interpolate.interp1d(spectrometer_frequencies, spectral_intensity, bounds_error=False, fill_value=0.)
+interpolated_spectral_intensity = interpolator(frequencies)
 
-interpolator = scipy.interpolate.interp1d(angular_frequencies,spectral_intensity)
-angular_frequencies = np.linspace(angular_frequencies[0],angular_frequencies[-1],interpolate_count,endpoint=True)
-interpolated_spectral_intensity = interpolator(angular_frequencies)
-
-plt.plot(angular_frequencies,interpolated_spectral_intensity)
+plt.plot(frequencies, interpolated_spectral_intensity)
 plt.title('Final Data')
-plt.xlabel('Angular Frequencies (rad/s)')
+plt.xlabel('Frequencies (Hz)')
 plt.savefig(folder+'spectrum.svg')
 plt.show()
 
-processed_spectrum = np.array([*zip(angular_frequencies,interpolated_spectral_intensity)])
+processed_spectrum = np.array([*zip(frequencies, interpolated_spectral_intensity)])
 np.savetxt(folder+'processed_spectrum.tsv', processed_spectrum, delimiter='\t')
