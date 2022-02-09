@@ -58,16 +58,17 @@ plt.show()
 '''
 threshold = 1.5e-3    
 
-iterations = 5
+iterations = 100
 pulse = initial_guess
 indices = np.arange(len(delays))
 for i in range(iterations):
-    fig, axes = plt.subplots(1, 2)
-    axes[0].plot(times, pulse.real)
-    axes[0].plot(times, pulse.imag)
+    #fig, axes = plt.subplots(1, 2)
+    #axes[0].plot(times, pulse.real)
+    #axes[0].plot(times, pulse.imag)
     rng.shuffle(indices)
+    
     # Iterate through lines
-    print(indices)
+    #print(indices)
     for j in indices:
         # Calculate SHG
         pulse_interpolator = scipy.interpolate.interp1d(times, pulse, bounds_error=False, fill_value=0.)
@@ -100,12 +101,18 @@ for i in range(iterations):
 
         # Update E
         alpha = rng.uniform(0.1, 0.5)
-        scale = alpha*np.conj(gate_pulse)/(gate_pulse*np.conj(gate_pulse) + 1.e-3)
+        scale = alpha*np.conj(gate_pulse)/(np.max(abs(gate_pulse*np.conj(gate_pulse))) + 1.e-3)
         pulse += scale*(shg_new - shg)
-    
-    axes[1].plot(times, pulse.real)
-    axes[1].plot(times, pulse.imag)
-    plt.show()
+
+        #TODO: Print frog error
+    #axes[1].plot(times, pulse.real)
+    #axes[1].plot(times, pulse.imag)
+    #plt.show()
+
+#plt.plot(times, pulse.real)
+#plt.plot(times, pulse.imag)
+plt.plot(times, abs(pulse)**2)
+plt.show()
 
 #TODO: add error if shifted_frequencies != shifted_original frequencies
 #plt.pcolormesh(shifted_frequencies, delays, trace)
