@@ -43,6 +43,21 @@ axes[1].set_title('Flat Spectral Phase Pulse')
 plt.show()
 
 
+# Define functions for error calculation
+def calc_trace(pulse, delays):
+    pulse_interpolator = scipy.interpolate.interp1d(times, pulse, bounds_error=False, fill_value=0.)
+    trace = np.zeros((len(delays), len(pulse)))
+    for i in range(len(delays)):
+        gate_pulse = pulse_interpolator(times-delays[i])
+        shg = pulse*gate_pulse
+        shg_fft = np.fft.fftshift(np.fft.fft(shg))
+        trace[i,:] = abs(shg_fft*np.conj(shg_fft))
+    return trace
+
+def mu(trace_measured, trace_calculated):
+    return sum(trace_measured*trace_calculated)/sum(trace_calculated*trace_calculated)
+
+
 # I'm using frequency instead of angular frequency because that is
 # numpy's convention, and it's thus simpler this way
 
@@ -69,6 +84,7 @@ for i in range(iterations):
     
     # Iterate through lines
     #print(indices)
+    alpha = rng.uniform(0.1, 0.5)
     for j in indices:
         # Calculate SHG
         pulse_interpolator = scipy.interpolate.interp1d(times, pulse, bounds_error=False, fill_value=0.)
@@ -100,7 +116,7 @@ for i in range(iterations):
         #axes[1].plot(times, abs(shg_new)**2)
 
         # Update E
-        alpha = rng.uniform(0.1, 0.5)
+        
         scale = alpha*np.conj(gate_pulse)/(np.max(abs(gate_pulse*np.conj(gate_pulse))) + 1.e-3)
         pulse += scale*(shg_new - shg)
 
@@ -111,7 +127,16 @@ for i in range(iterations):
 
 #plt.plot(times, pulse.real)
 #plt.plot(times, pulse.imag)
+fig, ax = plt.subplots(1, 1)
+ax.pcolormesh(shifted_frequencies, delays, calc_trace(pulse, delays))
+ax.set_title('Trace of Retrieved Pulse')
+ax.set_xlabel('frequencies (Hz)')
+ax.set_ylabel('delays (s)')
+ax.set_aspect(1.e25)
+plt.savefig(folder+'final_trace.png', dpi=600)
+plt.clf()
 plt.plot(times, abs(pulse)**2)
+plt.savefig(folder+'final_pulse.png', dpi=600)
 plt.show()
 
 #TODO: add error if shifted_frequencies != shifted_original frequencies
