@@ -4,8 +4,9 @@ import numpy as np
 folder = './Second Stage/'
 measured_data = np.loadtxt(folder+'processed_data.tsv', delimiter='\t')
 delays = np.loadtxt(folder+'processed_data_delays.tsv', delimiter='\t')
-signal_wavelengths = np.loadtxt(folder+'image_wavelengths.tsv', delimiter='\t')
-retrieved_pulse = np.loadtxt(folder+'retrieved_pulse.tsv', delimiter='\t')
+image_angular_frequencies = np.loadtxt(folder+'processed_data_ang_freqs.tsv')
+signal_wavelengths = 2.*np.pi*2.99e8/image_angular_frequencies
+retrieved_pulse = np.loadtxt(folder+'retrieved_pulse.tsv', delimiter='\t', dtype=np.complex128)
 pulse_time = np.loadtxt(folder+'pulse_time.tsv', delimiter='\t')
 retrieved_trace = np.loadtxt(folder+'retrieved_trace.tsv', delimiter='\t')
 pulse_wavelengths = np.loadtxt(folder+'retrieved_wavelengths.tsv', delimiter='\t')
@@ -16,11 +17,11 @@ delays *= 1.e15 # convert delays to fs
 fig = plt.figure()
 axes = fig.subplots(2,2)
 
-axes[0,0].pcolormesh(signal_wavelengths*1e9, delays, measured_data, shading='auto')
+axes[0,0].pcolormesh(signal_wavelengths[::-1]*1e9, delays, measured_data, shading='auto')
 axes[0,0].set_xlabel('wavelength (nm)')
 axes[0,0].set_ylabel('delays (fs)')
 
-axes[0,1].pcolormesh(signal_wavelengths, delays, retrieved_trace, shading='auto')
+axes[0,1].pcolormesh(signal_wavelengths*1e9, delays, retrieved_trace, shading='auto')
 axes[0,1].set_xlabel('wavelength (nm)')
 axes[0,1].set_ylabel('delays (fs)')
 
@@ -53,7 +54,7 @@ axes10phase.set_ylabel('phase (rad)')
 axes[1,0].set_title('Duration: {0:.4g}'.format(fwhm_time*1.e15))
 
 # TODO: This doesn't convert from w to wavelength...
-spectrum = np.loadtxt(folder+'retrieved_spectrum.tsv', delimiter='\t')
+spectrum = np.loadtxt(folder+'retrieved_spectrum.tsv', delimiter='\t', dtype=np.complex128)
 spectral_intensity = np.abs(spectrum)**2
 spectral_intensity /= np.max(spectral_intensity)
 axes[1,1].plot(pulse_wavelengths, spectral_intensity,'r-')

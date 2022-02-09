@@ -14,7 +14,7 @@ raw_data = cv.imread(folder+filenames[0], cv.IMREAD_UNCHANGED)
 calibration_wavelength = 609.e-9 # m
 calibration_pixel = 2029 # px
 wavelength_per_pixel = 0.0903e-9 # m/px
-delay_per_pixel = 0.1e-15 # s/px
+delay_per_pixel = 6.e-15 # s/px
 crop_left_pixel = 356
 
 delays = delay_per_pixel*np.linspace(-raw_data.shape[0]/2., raw_data.shape[0]/2., raw_data.shape[0])
@@ -57,11 +57,20 @@ print('actual dw: ', dw*1e-12)
 print('dw from duration: ', 2.*np.pi/duration*1e-12)
 print('bandwidth from dt: ', 2.*np.pi/dt*1e-12)
 
+print('tbp: ', dt*dw, 'condition: ', 2.*np.pi/new_width)
+#########
+
+interpolant = scipy.interpolate.interp2d(wavelengths, delays, shifted_data)
+angular_frequencies = np.linspace(2.*np.pi*2.99e8/right_wavelength, 2.*np.pi*2.99e8/left_wavelength, new_width, endpoint=True)
+new_wavelengths = 2.*np.pi*2.99e8/angular_frequencies
+new_delays = np.linspace(-new_width/2*(2.*np.pi/new_width/dw), new_width/2*(2.*np.pi/new_width/dw), new_width, endpoint=True)
+interpolated_data = interpolant(new_wavelengths, new_delays)
+
 
 np.savetxt(folder+'image_wavelengths.tsv', new_wavelengths, delimiter='\t')
 
-plt.contour(new_wavelengths*1e9, new_delays*1e15, interpolated_data, levels=100)
-plt.xlabel('wavelength (nm)')
+plt.contour(angular_frequencies*1e-12, new_delays*1e15, interpolated_data, levels=100)
+plt.xlabel('angular frequency (Trad/s)')
 plt.ylabel('delay (fs)')
 plt.title('Contour Plot of Interpolated Data')
 print(interpolated_data.shape)
