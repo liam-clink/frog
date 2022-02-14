@@ -54,9 +54,20 @@ def calc_trace(pulse, delays):
         trace[i,:] = abs(shg_fft*np.conj(shg_fft))
     return trace
 
-def mu(trace_measured, trace_calculated):
+def scale_factor(trace_measured, trace_calculated):
     return sum(trace_measured*trace_calculated)/sum(trace_calculated*trace_calculated)
 
+# Calculate norm for error function, since it need only be calculated once
+norm = trace.shape[0]*trace.shape[1]*np.max(trace)**2
+def calc_error(pulse, trace_measured, delays):
+    # Calculate trace
+    trace_calculated = calc_trace(pulse, delays)
+    # Calculate scale factor
+    mu = scale_factor(trace_measured, trace_calculated)
+    # Sum squares of residuals
+    r = np.sum((trace_measured-mu*trace_calculated)**2)
+    # Return normalized error
+    return np.sqrt(r/norm)
 
 # I'm using frequency instead of angular frequency because that is
 # numpy's convention, and it's thus simpler this way
@@ -74,9 +85,10 @@ plt.show()
 '''
 threshold = 1.5e-3    
 
-iterations = 100
+iterations = 300
 pulse = initial_guess
 indices = np.arange(len(delays))
+frog_errors = []
 for i in range(iterations):
     #fig, axes = plt.subplots(1, 2)
     #axes[0].plot(times, pulse.real)
@@ -121,10 +133,31 @@ for i in range(iterations):
         scale = alpha*np.conj(gate_pulse)/(np.max(abs(gate_pulse*np.conj(gate_pulse))) + 1.e-3)
         pulse += scale*(shg_new - shg)
 
-        #TODO: Print frog error
+        # Correct Spectrum of E TODO: probably need to normalize to be the same energy before and after
+        pulse_fft = np.fft.fftshift(np.fft.fft(pulse))
+        energy = np.sum(abs(pulse_fft*np.conj(pulse_fft)))
+        pulse_fft = original_spectral_amplitude*np.exp(1.0j*np.angle(pulse_fft))
+        new_energy = np.sum(abs(pulse_fft*np.conj(pulse_fft)))
+        pulse_fft *= np.sqrt(energy/new_energy)
+        pulse = np.fft.ifft(np.fft.ifftshift(pulse_fft))
+
+        # Remove time ambiguity
+        peak_index = np.argmax(abs(pulse*np.conj(pulse)))
+        pulse = np.roll(pulse, int(len(pulse)/2 - peak_index))
+
+    #plt.imshow(calc_trace(pulse, delays))
+    #plt.show()    
+
+    # Print frog error
+    frog_error = calc_error(pulse, trace, delays)
+    print("Iteration: ", i, "FROG Error: ", frog_error)
+    frog_errors.append(frog_error)
+
     #axes[1].plot(times, pulse.real)
     #axes[1].plot(times, pulse.imag)
     #plt.show()
+
+np.savetxt(folder+'frog_errors.tsv', np.array(frog_errors), delimiter='\t')
 
 #plt.plot(times, pulse.real)
 #plt.plot(times, pulse.imag)
@@ -136,15 +169,21 @@ ax.set_ylabel('delays (s)')
 ax.set_aspect(1.e25)
 plt.savefig(folder+'final_trace.png', dpi=600)
 plt.show()
-fig, ax = plt.subplots(1, 1)
+
+fig, axes = plt.subplots(1, 2)
+axes[0].plot(times, abs(pulse)**2)
+axes[0].set_xlabel('time (s)')
+axes[0].set_ylabel('amplitude (a.u.)')
 index_filter = abs(pulse)**2 > np.max(abs(pulse)**2)/10.
-ax_phase = ax.twinx()
+ax_phase = axes[0].twinx()
 ax_phase.plot(times[index_filter], np.unwrap(np.angle(pulse[index_filter])), color='red')
-ax.plot(times, abs(pulse)**2)
-ax.set_xlabel('time (s)')
-ax.set_ylabel('amplitude (a.u.)')
 ax_phase.set_ylabel('phase (rad)')
-plt.title('Retrieved Pulse')
+axes[0].title('Retrieved Pulse')
+original = abs(original_spectral_amplitude)**2
+axes[1].plot(shifted_frequencies, original/np.max(original))
+retrieved = abs(np.fft.fftshift(np.fft.fft(pulse)))**2
+axes[1].plot(shifted_frequencies, retrieved/np.max(retrieved))
+axes[1].set_xlabel('frequencies (Hz)')
 plt.savefig(folder+'final_pulse.png', dpi=600)
 plt.show()
 
