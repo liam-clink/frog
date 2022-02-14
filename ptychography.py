@@ -63,6 +63,7 @@ def mu(trace_measured, trace_calculated):
 
 # FFT produces a spectrum centered at zero, IFFT expects the same
 #TODO: add error if shape is odd (assert ValueError)
+#TODO: perhaps shifting not being perfect is the issue...
 shifted_frequencies = frequencies - frequencies[int(frequencies.shape[0]/2)]
 
 # Uncomment to assess soft threshold level visually
@@ -134,8 +135,16 @@ ax.set_xlabel('frequencies (Hz)')
 ax.set_ylabel('delays (s)')
 ax.set_aspect(1.e25)
 plt.savefig(folder+'final_trace.png', dpi=600)
-plt.clf()
-plt.plot(times, abs(pulse)**2)
+plt.show()
+fig, ax = plt.subplots(1, 1)
+index_filter = abs(pulse)**2 > np.max(abs(pulse)**2)/10.
+ax_phase = ax.twinx()
+ax_phase.plot(times[index_filter], np.unwrap(np.angle(pulse[index_filter])), color='red')
+ax.plot(times, abs(pulse)**2)
+ax.set_xlabel('time (s)')
+ax.set_ylabel('amplitude (a.u.)')
+ax_phase.set_ylabel('phase (rad)')
+plt.title('Retrieved Pulse')
 plt.savefig(folder+'final_pulse.png', dpi=600)
 plt.show()
 
