@@ -84,7 +84,7 @@ plt.show()
 '''
 threshold = 1.5e-3    
 
-iterations = 100
+iterations = 300
 pulse = initial_guess
 indices = np.arange(len(delays))
 frog_errors = []
