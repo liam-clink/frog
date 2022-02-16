@@ -206,6 +206,7 @@ axes[1].set_xlabel('frequencies (Hz)')
 index_filter = retrieved_spectrum > np.max(retrieved_spectrum)/10.
 ax_phase = axes[1].twinx()
 ax_phase.plot(shifted_frequencies[index_filter], np.unwrap(np.angle(retrieved_spectral_amplitude[index_filter])), color='red')
+plt.tight_layout()
 plt.savefig(folder+'final_pulse.png', dpi=600)
 plt.show()
 

@@ -28,7 +28,7 @@ shifted_data = raw_data - np.min(raw_data)
 plt.imshow(raw_data)
 plt.show()
 
-
+#TODO: Pad spectrum so time resolution is higher
 # FROG image should be square with power of 2 side length if using General Projection.
 # Here the image is interpolated in case this isn't already the case.
 # Also, the dt and dw need to match, so dw = 2*pi/(duration) and dt = 2*pi/(ang. freq. bandwidth)
