@@ -166,7 +166,7 @@ ax.pcolormesh(shifted_frequencies, delays, calc_trace(pulse, delays))
 ax.set_title('Trace of Retrieved Pulse')
 ax.set_xlabel('frequencies (Hz)')
 ax.set_ylabel('delays (s)')
-ax.set_aspect(1.e25)
+#ax.set_aspect(1.e25)
 plt.savefig(folder+'final_trace.png', dpi=600)
 plt.show()
 
@@ -178,7 +178,7 @@ index_filter = abs(pulse)**2 > np.max(abs(pulse)**2)/10.
 ax_phase = axes[0].twinx()
 ax_phase.plot(times[index_filter], np.unwrap(np.angle(pulse[index_filter])), color='red')
 ax_phase.set_ylabel('phase (rad)')
-axes[0].title('Retrieved Pulse')
+axes[0].set_title('Retrieved Pulse')
 original = abs(original_spectral_amplitude)**2
 axes[1].plot(shifted_frequencies, original/np.max(original))
 retrieved = abs(np.fft.fftshift(np.fft.fft(pulse)))**2
