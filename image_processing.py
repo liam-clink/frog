@@ -28,13 +28,13 @@ shifted_data = raw_data - np.min(raw_data)
 plt.imshow(raw_data)
 plt.show()
 
-
+#TODO: Pad spectrum so time resolution is higher
 # FROG image should be square with power of 2 side length if using General Projection.
 # Here the image is interpolated in case this isn't already the case.
 # Also, the dt and dw need to match, so dw = 2*pi/(duration) and dt = 2*pi/(ang. freq. bandwidth)
 old_size = max(shifted_data.shape[0], shifted_data.shape[1])
 exponent = (int(np.ceil(np.log2(shifted_data.shape[1]))))
-grid_size = 128 #2**exponent
+grid_size = 256 #2**exponent
 
 frequencies = np.linspace(2.99e8/right_wavelength, 2.99e8/left_wavelength, grid_size, endpoint=True)
 new_wavelengths = 2.99e8/frequencies
