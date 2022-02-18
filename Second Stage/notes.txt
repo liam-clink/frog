@@ -2,7 +2,7 @@ Pixels cropped off left: 356
 
 Calibration same as before
 
-Delay per vertical pixel: 0.10fs/pix
+Delay per vertical pixel: 0.17fs/pix
 
 451nm 280px
 540nm 1356px

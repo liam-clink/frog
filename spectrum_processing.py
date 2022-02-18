@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import scipy.optimize
 import scipy.interpolate
 
-folder = './Second Stage/'
-filename = 'AfterChirpmirr_2ndStage.txt'
+folder = './First Stage/'
+filename = 'SpectraAfterFirstStage_2021_08_03.txt'
 
 
 frequencies = np.loadtxt(folder+'processed_data_freqs.tsv')
@@ -13,6 +13,11 @@ frequencies = np.loadtxt(folder+'processed_data_freqs.tsv')
 frequencies -= 0.25*(frequencies[0] + frequencies[-1])
 max_wavelength = 2.99e8/frequencies[0]*1.e9 # nm
 min_wavelength = 2.99e8/frequencies[-1]*1.e9 # nm
+centered_frequencies = frequencies - (frequencies[-1]+frequencies[0])/2
+current_bandwidth = frequencies[-1]-frequencies[0]
+desired_timestep = 1.e-15 # s, set by user
+desired_bandwidth = 1/desired_timestep
+padded_frequencies = centered_frequencies*desired_bandwidth/current_bandwidth
 
 spectrum = np.loadtxt(folder+filename,skiprows=14)
 plt.plot(spectrum[:,0],spectrum[:,1])
@@ -69,7 +74,10 @@ sample_count = len(spectrometer_frequencies)
 interpolator = scipy.interpolate.interp1d(spectrometer_frequencies, spectral_intensity, bounds_error=False, fill_value=0.)
 interpolated_spectral_intensity = interpolator(frequencies)
 
-plt.plot(frequencies, interpolated_spectral_intensity)
+interpolator = scipy.interpolate.interp1d(centered_frequencies, interpolated_spectral_intensity, bounds_error=False, fill_value=0.)
+interpolated_spectral_intensity = interpolator(padded_frequencies)
+
+plt.plot(padded_frequencies, interpolated_spectral_intensity)
 plt.title('Final Data')
 plt.xlabel('Frequencies (Hz)')
 plt.savefig(folder+'spectrum.svg')
