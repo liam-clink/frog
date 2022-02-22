@@ -9,3 +9,12 @@ Delay per vertical pixel: 0.17fs/pix
 609nm 2029px
 
 Roughly 0.09nm/px
+
+Thorough Spectral Calibration, Spectrum 2
+575nm 1707px
+550nm 1428px
+527nm 1143px
+505nm 876px
+484nm 636px
+467nm 432px
+

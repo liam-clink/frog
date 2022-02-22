@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import scipy.optimize
 import scipy.interpolate
 
-folder = './First Stage/'
-filename = 'SpectraAfterFirstStage_2021_08_03.txt'
+folder = './Second Stage/'
+filename = 'AfterChirpmirr_2ndStage.txt'
 
 
 frequencies = np.loadtxt(folder+'processed_data_freqs.tsv')
@@ -15,7 +15,7 @@ max_wavelength = 2.99e8/frequencies[0]*1.e9 # nm
 min_wavelength = 2.99e8/frequencies[-1]*1.e9 # nm
 centered_frequencies = frequencies - (frequencies[-1]+frequencies[0])/2
 current_bandwidth = frequencies[-1]-frequencies[0]
-desired_timestep = 1.e-15 # s, set by user
+desired_timestep = 10.e-15 # s, set by user
 desired_bandwidth = 1/desired_timestep
 padded_frequencies = centered_frequencies*desired_bandwidth/current_bandwidth
 
@@ -83,5 +83,5 @@ plt.xlabel('Frequencies (Hz)')
 plt.savefig(folder+'spectrum.svg')
 plt.show()
 
-processed_spectrum = np.array([*zip(frequencies, interpolated_spectral_intensity)])
+processed_spectrum = np.array([*zip(padded_frequencies, interpolated_spectral_intensity)])
 np.savetxt(folder+'processed_spectrum.tsv', processed_spectrum, delimiter='\t')

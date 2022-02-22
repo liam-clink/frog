@@ -12,6 +12,9 @@ trace /= np.max(trace)
 delays = np.loadtxt(folder+'processed_data_delays.tsv', delimiter='\t')
 frequencies = np.loadtxt(folder+'processed_data_freqs.tsv', delimiter='\t')
 
+plt.imshow(trace)
+plt.show()
+
 # Spectrum of the original pulse (not necessary, but helpful)
 original_spectrum = np.loadtxt(folder+'processed_spectrum.tsv')
 original_spectrum[:,1] /= np.max(original_spectrum[:,1])
@@ -34,22 +37,7 @@ shifted_original_frequencies = np.fft.ifftshift(np.fft.fftfreq(grid_size, timest
 initial_scale = 8. # Change to make initial SHG have similar scale to trace
 initial_guess = initial_scale*np.fft.ifftshift(np.fft.ifft(original_spectral_amplitude))
 
-'''
-# Ensure centering of spectrum
-phase = np.unwrap(np.angle(initial_guess))
-peak_index = np.argmax(abs(initial_guess*np.conj(initial_guess)))
-#plt.plot(times, phase)
-#plt.show()
-center_frequency = (phase[peak_index+1] - phase[peak_index-1])/(times[peak_index+1] - times[peak_index-1])
-center_frequency /= 2.*np.pi
-center_frequency = -6.e11
-print(center_frequency)
-spectrum_interpolator = scipy.interpolate.interp1d(shifted_original_frequencies, original_spectrum[:,1], bounds_error=False, fill_value=0.)
-new_frequencies = shifted_original_frequencies + center_frequency
-new_spectrum = spectrum_interpolator(new_frequencies)
-new_spectral_amplitude = new_spectrum**0.5
-new_guess = np.fft.ifftshift(np.fft.ifft(new_spectral_amplitude))
-'''
+
 fig, axes = plt.subplots(1, 2)
 axes[0].plot(shifted_original_frequencies, original_spectral_amplitude)
 axes[0].set_title('Original Spectrum')
@@ -148,17 +136,18 @@ for i in range(iterations):
         #axes[1].plot(times, abs(shg_new)**2)
 
         # Update E
-        
         scale = alpha*np.conj(gate_pulse)/(np.max(abs(gate_pulse*np.conj(gate_pulse))) + 1.e-3)
         pulse += scale*(shg_new - shg)
 
-        # Correct Spectrum of E TODO: probably need to normalize to be the same energy before and after
+        # Correct the spectrum
+        # Normalize to be the same energy before and after
         pulse_fft = np.fft.fftshift(np.fft.fft(pulse))
         energy = np.sum(abs(pulse_fft*np.conj(pulse_fft)))
         pulse_fft = original_spectral_amplitude*np.exp(1.0j*np.angle(pulse_fft))
         new_energy = np.sum(abs(pulse_fft*np.conj(pulse_fft)))
         pulse_fft *= np.sqrt(energy/new_energy)
         pulse = np.fft.ifft(np.fft.ifftshift(pulse_fft))
+        
 
         # Remove time ambiguity
         peak_index = np.argmax(abs(pulse*np.conj(pulse)))
@@ -181,7 +170,7 @@ np.savetxt(folder+'frog_errors.tsv', np.array(frog_errors), delimiter='\t')
 #plt.plot(times, pulse.real)
 #plt.plot(times, pulse.imag)
 fig, ax = plt.subplots(1, 1)
-ax.pcolormesh(shifted_frequencies, delays, calc_trace(pulse, delays))
+ax.pcolormesh(shifted_frequencies, delays, calc_trace(pulse, delays))#, shading='flat')
 ax.set_title('Trace of Retrieved Pulse')
 ax.set_xlabel('frequencies (Hz)')
 ax.set_ylabel('delays (s)')
@@ -192,7 +181,7 @@ fig, axes = plt.subplots(1, 2)
 axes[0].plot(times, abs(pulse)**2)
 axes[0].set_xlabel('time (s)')
 axes[0].set_ylabel('amplitude (a.u.)')
-index_filter = abs(pulse)**2 > np.max(abs(pulse)**2)/10.
+index_filter = abs(pulse)**2 > np.max(abs(pulse)**2)/3.
 ax_phase = axes[0].twinx()
 ax_phase.plot(times[index_filter], np.unwrap(np.angle(pulse[index_filter])), color='red')
 ax_phase.set_ylabel('phase (rad)')
@@ -219,39 +208,7 @@ center_frequency /= 2.*np.pi
 print(center_frequency)
 phase = np.unwrap(np.angle(retrieved_spectral_amplitude))
 group_delay_dispersion = (phase[peak_index+1] - 2*phase[peak_index] + phase[peak_index-1])/(times[peak_index+1] - times[peak_index-1])**2
-'''
-spectrum_interpolator = scipy.interpolate.interp1d(shifted_frequencies, original_spectrum, bounds_error=False, fill_value=0.)
-new_frequencies = shifted_frequencies + center_frequency
-new_spectrum = spectrum_interpolator(new_frequencies)
-new_spectral_amplitude = new_spectrum**0.5
-new_guess = np.fft.ifftshift(np.fft.ifft(new_spectral_amplitude))
-'''
-'''
-new_guess = pulse*np.exp(-1.j*2.*np.pi*center_frequency*times)
-new_spectral_amplitude = np.fft.fftshift(np.fft.fft(new_guess))
-new_spectral_amplitude *= np.exp(1.j*2.*np.pi*times[0]/2.)
-new_spectrum = abs(new_spectral_amplitude*np.conj(new_spectral_amplitude))
 
-
-fig, axes = plt.subplots(1, 2)
-axes[0].plot(times, abs(new_guess)**2)
-axes[0].set_xlabel('time (s)')
-axes[0].set_ylabel('amplitude (a.u.)')
-index_filter = abs(new_guess)**2 > np.max(abs(new_guess)**2)/10.
-ax_phase = axes[0].twinx()
-ax_phase.plot(times[index_filter], np.unwrap(np.angle(new_guess[index_filter])), color='red')
-ax_phase.set_ylabel('phase (rad)')
-axes[0].set_title('Retrieved Pulse')
-original_spectrum = abs(original_spectral_amplitude)**2
-axes[1].plot(shifted_frequencies, original_spectrum/np.max(original_spectrum))
-axes[1].plot(shifted_frequencies, retrieved_spectrum/np.max(retrieved_spectrum))
-axes[1].set_xlabel('frequencies (Hz)')
-index_filter = new_spectrum > np.max(retrieved_spectrum)/10.
-ax_phase = axes[1].twinx()
-ax_phase.plot(shifted_frequencies[index_filter], np.unwrap(np.angle(new_spectral_amplitude[index_filter])), color='red')
-plt.savefig(folder+'final_pulse.png', dpi=600)
-plt.show()
-'''
 
 #TODO: add error if shifted_frequencies != shifted_original frequencies
 #plt.pcolormesh(shifted_frequencies, delays, trace)
