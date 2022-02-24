@@ -2,6 +2,7 @@ from operator import index
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate
+import scipy.optimize
 from numpy.random import default_rng
 rng = default_rng()
 
@@ -90,28 +91,47 @@ for i in range(trace.shape[-1]):
     plt.plot(shifted_frequencies, trace[i,:])
 plt.show()
 '''
-threshold = 1.5e-3    
 
+def Z(E_new, E_sig):
+    N = len(E_new)
+    running_sum = 0.
+    for i in range(N):
+        for j in range(N):
+            residual = E_sig[j,i] - E_new[i]*E_new[i-j]
+            running_sum += residual*np.conj(residual)
+    return abs(running_sum)
+
+def grad_Z(E_old, E_sig):
+    N = len(E_old)
+    running_sum = 0.
+    for i in range(N):
+        shift_right = np.roll(E_old,-i)
+        shift_left = np.roll(E_old,i)
+        running_sum += -np.conj(E_sig[i,:])*shift_right + np.conj(E_old)*shift_right*np.conj(shift_right) \
+                       +np.conj(np.roll(E_sig[i,:],i,axis=1))*shift_left + np.conj(E_old)*shift_left*np.conj(shift_left)
+    running_sum = 2.*running_sum.real
+    return np.concatenate((running_sum, 1.j*running_sum), dtype=np.complex128)
+
+threshold = 1.5e-3    
 iterations = 30
 pulse = initial_guess
-indices = np.arange(len(delays))
 frog_errors = []
 for i in range(iterations):
     #fig, axes = plt.subplots(1, 2)
     #axes[0].plot(times, pulse.real)
     #axes[0].plot(times, pulse.imag)
-    
-    integral = np.zeros_like(pulse)
+
+    shg = np.zeros((len(delays), len(times)), dtype=np.complex128)
 
     # Iterate through lines
-    for j in indices:
+    for j in range(len(delays)):
         # Calculate SHG
         pulse_interpolator = scipy.interpolate.interp1d(times, pulse, bounds_error=False, fill_value=0.)
         gate_pulse = pulse_interpolator(times-delays[j])
-        shg = pulse*gate_pulse
+        shg[j,:] = pulse*gate_pulse
         
         # FFT(SHG)
-        shg_fft = np.fft.fftshift(np.fft.fft(shg))
+        shg_fft = np.fft.fftshift(np.fft.fft(shg[j,:]))
         #axes[0].plot(shifted_frequencies, trace[j,:])
         #axes[1].plot(shifted_frequencies, shg_fft*np.conj(shg_fft))
         
@@ -125,11 +145,14 @@ for i in range(iterations):
         shg_new = np.fft.ifft(np.fft.ifftshift(shg_fft))
         #axes[0].plot(times, abs(shg)**2)
         #axes[1].plot(times, abs(shg_new)**2)
-        integral += shg_new
+        
+        shg[j,:] = shg_new
 
-    # Update E
-    integral_norm = np.sum((integral*np.conj(integral))**0.5)
-    pulse = integral/integral_norm
+    ## Update E
+    # First calculate Z gradient
+    flattened_pulse = np.concatenate((pulse.real, 1.j*pulse.imag))
+    scipy.optimize.line_search(Z, grad_Z, flattened_pulse, -grad_Z(pulse, shg)) #TODO: CHECK THIS, MAY NOT WORK AS EXPECTED
+    input()
 
     #plt.imshow(calc_trace(pulse, delays))
     #plt.show()    

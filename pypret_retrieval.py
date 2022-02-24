@@ -18,12 +18,10 @@ time_pixels = data.shape[0]
 spectrum_pixels = data.shape[1]
 
 delays = np.loadtxt(folder+'processed_data_delays.tsv')
-image_angular_frequencies = np.loadtxt(folder+'processed_data_ang_freqs.tsv')
+image_angular_frequencies = 2.*np.pi*np.loadtxt(folder+'processed_data_freqs.tsv')
 
 if time_pixels != len(delays) or spectrum_pixels != len(image_angular_frequencies):
     raise ValueError('Dimensions of input image must match axis dimensions')
-
-print(image_angular_frequencies[0], image_angular_frequencies[-1])
 
 if spectrum_provided:
     spectral_intensity = np.loadtxt(folder+'processed_spectrum.tsv')
@@ -57,8 +55,6 @@ angular_frequencies = image_angular_frequencies - 2.*central_angular_frequency
 # The FT grid is meant to be centered at zero in w space?
 #TODO: The w0 should not need to be set. Something is wrong... the frequencies I get are off center
 ft = pypret.FourierTransform(len(angular_frequencies), dw=angular_frequencies[1]-angular_frequencies[0], w0=angular_frequencies[0])
-print(len(ft.t), ft.t[0], ft.t[-1], len(ft.w), ft.w[0], ft.w[-1])
-input()
 # instantiate a pulse object, angular frequency in rad/s
 #TODO: Consider leaving input in wavelength
 pulse = pypret.Pulse(ft, central_angular_frequency, unit='om')
