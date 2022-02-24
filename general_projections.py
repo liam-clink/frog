@@ -92,7 +92,7 @@ plt.show()
 '''
 threshold = 1.5e-3    
 
-iterations = 300
+iterations = 30
 pulse = initial_guess
 indices = np.arange(len(delays))
 frog_errors = []
@@ -100,11 +100,10 @@ for i in range(iterations):
     #fig, axes = plt.subplots(1, 2)
     #axes[0].plot(times, pulse.real)
     #axes[0].plot(times, pulse.imag)
-    rng.shuffle(indices)
     
+    integral = np.zeros_like(pulse)
+
     # Iterate through lines
-    #print(indices)
-    alpha = rng.uniform(0.1, 0.5)
     for j in indices:
         # Calculate SHG
         pulse_interpolator = scipy.interpolate.interp1d(times, pulse, bounds_error=False, fill_value=0.)
@@ -122,37 +121,15 @@ for i in range(iterations):
         #axes[0].plot(shifted_frequencies[index_filter], trace[j,index_filter])
         #axes[1].plot(shifted_frequencies[index_filter], abs(shg_fft[index_filter])**2)
         
-        # Soft threshold the weak part
-        index_filter = trace[j,:] < threshold
-        shg_fft[index_filter].real = np.where(abs(shg_fft[index_filter].real)<1.e-3, 0., shg_fft[index_filter].real)
-        shg_fft[index_filter].imag = np.where(abs(shg_fft[index_filter].imag)<1.e-3, 0., shg_fft[index_filter].imag)
-        #axes[0].plot(shifted_frequencies, trace[j,:])
-        #axes[1].plot(shifted_frequencies, shg_fft.real)
-        #axes[1].plot(shifted_frequencies, shg_fft.imag)
-        
         # IFFT(SHG)
         shg_new = np.fft.ifft(np.fft.ifftshift(shg_fft))
         #axes[0].plot(times, abs(shg)**2)
         #axes[1].plot(times, abs(shg_new)**2)
+        integral += shg_new
 
-        # Update E
-        epsilon = 1.e-6
-        scale = alpha*np.conj(gate_pulse)/(np.max(abs(gate_pulse*np.conj(gate_pulse))) + epsilon)
-        pulse += scale*(shg_new - shg)
-
-        # Correct the spectrum
-        # Normalize to be the same energy before and after
-        pulse_fft = np.fft.fftshift(np.fft.fft(pulse))
-        energy = np.sum(abs(pulse_fft*np.conj(pulse_fft)))
-        pulse_fft = original_spectral_amplitude*np.exp(1.0j*np.angle(pulse_fft))
-        new_energy = np.sum(abs(pulse_fft*np.conj(pulse_fft)))
-        pulse_fft *= np.sqrt(energy/new_energy)
-        pulse = np.fft.ifft(np.fft.ifftshift(pulse_fft))
-        
-
-        # Remove time ambiguity
-        peak_index = np.argmax(abs(pulse*np.conj(pulse)))
-        pulse = np.roll(pulse, int(len(pulse)/2 - peak_index))
+    # Update E
+    integral_norm = np.sum((integral*np.conj(integral))**0.5)
+    pulse = integral/integral_norm
 
     #plt.imshow(calc_trace(pulse, delays))
     #plt.show()    

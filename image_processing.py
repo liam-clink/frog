@@ -26,6 +26,8 @@ wavelengths = np.linspace(left_wavelength, right_wavelength, raw_data.shape[1], 
 # Shift minimum to zero
 shifted_data = raw_data - np.min(raw_data)
 plt.pcolormesh(wavelengths, delays, raw_data)
+plt.xlabel('wavelength (m)')
+plt.ylabel('delays (s)')
 plt.show()
 
 # FROG image should be square with power of 2 side length if using General Projection.
@@ -43,7 +45,8 @@ new_delays = np.linspace(delays[0], delays[-1], grid_size, endpoint=True)
 interpolant = scipy.interpolate.interp2d(old_frequencies, delays, shifted_data)
 interpolated_data = interpolant(frequencies, new_delays)
 
-centered_frequencies = frequencies - (frequencies[0]+frequencies[-1])/2.
+center_frequency = (frequencies[0]+frequencies[-1])/2.
+centered_frequencies = frequencies - center_frequency
 current_bandwidth = frequencies[-1] - frequencies[0]
 #desired_timestep = 6.7e-15 # s, set by user
 desired_timestep = new_delays[1]-new_delays[0] # General Projections reciprocal condition
@@ -63,4 +66,4 @@ plt.show()
 print('output datatype: ', interpolated_data.dtype)
 np.savetxt(folder+'processed_data.tsv', interpolated_data, delimiter='\t')
 np.savetxt(folder+'processed_data_delays.tsv', new_delays, delimiter='\t')
-np.savetxt(folder+'processed_data_freqs.tsv', frequencies, delimiter='\t')
+np.savetxt(folder+'processed_data_freqs.tsv', padded_frequencies + center_frequency, delimiter='\t')
