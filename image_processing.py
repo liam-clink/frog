@@ -38,21 +38,22 @@ grid_size = 128 #2**exponent
 old_frequencies = 2.99e8/wavelengths
 frequencies = np.linspace(2.99e8/right_wavelength, 2.99e8/left_wavelength, grid_size, endpoint=True)
 new_delays = np.linspace(delays[0], delays[-1], grid_size, endpoint=True)
-new_delays *= 0.5
+
 
 interpolant = scipy.interpolate.interp2d(old_frequencies, delays, shifted_data)
 interpolated_data = interpolant(frequencies, new_delays)
 
 centered_frequencies = frequencies - (frequencies[0]+frequencies[-1])/2.
-current_bandwidth = frequencies[-1]-frequencies[0]
-desired_timestep = 10.e-15 # s, set by user
+current_bandwidth = frequencies[-1] - frequencies[0]
+#desired_timestep = 6.7e-15 # s, set by user
+desired_timestep = new_delays[1]-new_delays[0] # General Projections reciprocal condition
 desired_bandwidth = 1./desired_timestep
 padded_frequencies = centered_frequencies*desired_bandwidth/current_bandwidth
 
 interpolant = scipy.interpolate.interp2d(centered_frequencies, new_delays, interpolated_data, bounds_error=False, fill_value=0.)
 interpolated_data = interpolant(padded_frequencies, new_delays)
 
-plt.contour(frequencies, new_delays, interpolated_data, levels=500)
+plt.contour(padded_frequencies, new_delays, interpolated_data, levels=500)
 plt.xlabel('frequency (THz)')
 plt.ylabel('delay (fs)')
 plt.title('Contour Plot of Interpolated Data')
