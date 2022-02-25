@@ -97,7 +97,7 @@ def Z(E_new, E_sig):
     running_sum = 0.
     for i in range(N):
         for j in range(N):
-            residual = E_sig[j,i] - E_new[i]*E_new[i-j]
+            residual = E_sig[i,j] - E_new[j]*np.roll(E_new,-i)[j] #TODO: is this roll correct?
             running_sum += residual*np.conj(residual)
     return abs(running_sum)
 
@@ -105,12 +105,12 @@ def grad_Z(E_old, E_sig):
     N = len(E_old)
     running_sum = 0.
     for i in range(N):
-        shift_right = np.roll(E_old,-i)
-        shift_left = np.roll(E_old,i)
+        shift_right = np.roll(E_old,i)
+        shift_left = np.roll(E_old,-i)
         running_sum += -np.conj(E_sig[i,:])*shift_right + np.conj(E_old)*shift_right*np.conj(shift_right) \
-                       +np.conj(np.roll(E_sig[i,:],i,axis=1))*shift_left + np.conj(E_old)*shift_left*np.conj(shift_left)
+                       +np.conj(np.roll(E_sig,-i,axis=1)[i,:])*shift_left + np.conj(E_old)*shift_left*np.conj(shift_left)
     running_sum = 2.*running_sum.real
-    return np.concatenate((running_sum, 1.j*running_sum), dtype=np.complex128)
+    return running_sum + 1.j*running_sum
 
 threshold = 1.5e-3    
 iterations = 30
@@ -151,7 +151,7 @@ for i in range(iterations):
     ## Update E
     # First calculate Z gradient
     flattened_pulse = np.concatenate((pulse.real, 1.j*pulse.imag))
-    scipy.optimize.line_search(Z, grad_Z, flattened_pulse, -grad_Z(pulse, shg)) #TODO: CHECK THIS, MAY NOT WORK AS EXPECTED
+    scipy.optimize.line_search(Z, grad_Z, pulse, -grad_Z(pulse, shg), args=(shg,)) #TODO: CHECK THIS, MAY NOT WORK AS EXPECTED
     input()
 
     #plt.imshow(calc_trace(pulse, delays))
