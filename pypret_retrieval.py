@@ -1,5 +1,11 @@
 """
 Retrieves the pulse from the FROG data using the Pypret library and saves the result
+
+To run, it requires
+processed_data.tsv: 
+processed_data_delays.tsv
+processed_data_freqs.tsv
+processed_spectrum.tsv
 """
 
 import numpy as np
@@ -8,11 +14,11 @@ from pypret import pypret
 
 C = 2.99e8
 
-FOLDER = "Second Stage/"
+FOLDER = "Raw PHAROS/"
 
 # Parameters
 GUESS_FWHM = 25.0e-15  # FWHM in s
-SPECTRUM_PROVIDED = True
+SPECTRUM_PROVIDED = False
 
 # Measured data
 # axis 0 of data is delay, axis 1 is signal angular frequency
@@ -22,6 +28,7 @@ data = data[:, ::-1]
 time_pixels = data.shape[0]
 spectrum_pixels = data.shape[1]
 
+
 delays = np.loadtxt(FOLDER + "processed_data_delays.tsv")
 image_angular_frequencies = (
     2.0 * np.pi * np.loadtxt(FOLDER + "processed_data_freqs.tsv")
@@ -29,6 +36,7 @@ image_angular_frequencies = (
 
 if time_pixels != len(delays) or spectrum_pixels != len(image_angular_frequencies):
     raise ValueError("Dimensions of input image must match axis dimensions")
+
 
 if SPECTRUM_PROVIDED:
     spectral_intensity = np.loadtxt(FOLDER + "processed_spectrum.tsv")
@@ -38,12 +46,23 @@ if SPECTRUM_PROVIDED:
 else:
     CENTRAL_WAVELENGTH = 1030.0e-9  # wavelength in m
     central_angular_frequency = 2.0 * np.pi * C / CENTRAL_WAVELENGTH
-    wavelengths = np.linspace(-25.0e-9, 25.0e-9, spectrum_pixels) + CENTRAL_WAVELENGTH
-    angular_frequencies = 2.0 * np.pi * 2.99e8 / wavelengths[::-1]
+    BANDWIDTH = 50.0e-9  # m
+    angular_frequencies = (
+        2.0
+        * np.pi
+        * C
+        * np.linspace(
+            1 / (CENTRAL_WAVELENGTH + BANDWIDTH / 2),
+            1 / (CENTRAL_WAVELENGTH - BANDWIDTH / 2),
+            spectrum_pixels,
+        )
+    )
+
 
 measured_data = pypret.MeshData(data, delays, image_angular_frequencies)
 measured_data.interpolate()
 image_angular_frequencies = measured_data.axes[1]
+
 
 ####################################################################################################
 # Angular frequencies need to be interpolated to match the "measured_data.axes[1] = pnps.process_w"
@@ -59,52 +78,38 @@ image_angular_frequencies = measured_data.axes[1]
 # so this means that the pulse.ft.w frequencies need
 # to be resampled appropriately to satisfy this condition
 
-angular_frequencies = image_angular_frequencies - 2.0 * central_angular_frequency
 
 ##################################################################
 # Create Fourier Transform grid
 # This FT grid is for the *original* pulse, not the nonlinear process result
 # The FT grid is meant to be centered at zero in w space?
-# TODO: The w0 should not need to be set. Something is wrong... the frequencies I get are off center
+# w0 is supposed to be 0 because the pulse is supposed to be just the envelope
+
 ft = pypret.FourierTransform(
-    len(angular_frequencies),
-    dw=angular_frequencies[1] - angular_frequencies[0],
-    w0=angular_frequencies[0],
+    128,
+    dt=2.86e-15,
 )
+
 # instantiate a pulse object, angular frequency in rad/s
-# TODO: Consider leaving input in wavelength
+# The central angular frequency just tracks where the center should be
+# The actual pulse object only represents the envelope, which is centered at 0 rad/s
 pulse = pypret.Pulse(ft, central_angular_frequency, unit="om")
 
 # Spectrum specified from spectrometer data
-if SPECTRUM_PROVIDED:
-    # Spectrum must be provided in angular frequency
-    # Since documentation says "spectral envelope", the peak may need to be centered at w=0
-    interpolator = scipy.interpolate.interp1d(
-        spectral_intensity[:, 0],
-        spectral_intensity[:, 1] ** (0.5),
-        bounds_error=False,
-        fill_value=0.0,
-    )
-    interpolated_spectral_amplitude = interpolator(
-        angular_frequencies + central_angular_frequency
-    )
-    pulse.spectrum = interpolated_spectral_amplitude
-else:
-    # create a random pulse with time-bandwidth product of 2.
-    pypret.random_pulse(pulse, 2.0)
-    # start with a Gaussian spectrum with random phase as initial guess
-    pypret.random_gaussian(pulse, GUESS_FWHM, phase_max=0.0)
 
+# Spectrum must be provided in angular frequency
+# Since documentation says "spectral envelope", the peak may need to be centered at w=0
+interpolator = scipy.interpolate.interp1d(
+    spectral_intensity[:, 0],
+    spectral_intensity[:, 1] ** (0.5),
+    bounds_error=False,
+    fill_value=0.0,
+)
+interpolated_spectral_amplitude = interpolator(
+    angular_frequencies + central_angular_frequency
+)
+pulse.spectrum = interpolated_spectral_amplitude
 
-# plot the pulse
-pypret.PulsePlot(pulse)
-
-# simulate a frog measurement
-pnps = pypret.PNPS(pulse, "frog", "shg")
-# calculate the measurement trace
-pnps.calculate(pulse.spectrum, delays)
-# and plot it
-pypret.MeshDataPlot(pnps.trace)
 
 ##################################################################
 ## Finally doing the actual retrieval
