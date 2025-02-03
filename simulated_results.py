@@ -21,6 +21,25 @@ def gaussian_pulse(
     x_offset: float,
     y_offset: float,
 ):
+    """Generate a pulse with gaussian spatial and temporal profile pulse
+
+    Args:
+        x (numpy float array): Horizontal axis
+        y (numpy float array): Vertical axis
+        z (numpy float array): Longitudinal axis
+        w (float): waist
+        delay (float): Temporal delay
+        duration (float): Full Width Half Max duration
+        angle (float): Angle of refraction
+        x_offset (float): Shift in the horizontal direction
+        y_offset (float): Shift in the vertical direction
+
+    Returns:
+        numpy float array: Output intensity
+    """
+    # Change duration from FWHM to stdev
+    duration /= (8.0 * np.log(2)) ** 0.5
+
     x_transformed = np.cos(angle) * x + np.sin(angle) * z
     z_transformed = -np.sin(angle) * x + np.cos(angle) * z
 
